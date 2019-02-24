@@ -51,6 +51,18 @@
 			<version>1.11.3</version>
 		</dependency>
 
+		<dependency>
+			<groupId>ru.stachek66.nlp</groupId>
+			<artifactId>mystem-scala</artifactId>
+			<version>0.1.4</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.opennlp</groupId>
+			<artifactId>opennlp-tools</artifactId>
+			<version>1.9.1</version>
+		</dependency>
+
 
 	</dependencies>
 
