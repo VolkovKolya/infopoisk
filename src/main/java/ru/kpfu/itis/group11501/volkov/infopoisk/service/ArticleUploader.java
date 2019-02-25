@@ -6,14 +6,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
-import ru.kpfu.itis.group11501.volkov.infopoisk.domain.Article;
+import org.springframework.transaction.annotation.Transactional;
 import ru.kpfu.itis.group11501.volkov.infopoisk.domain.Student;
 import ru.kpfu.itis.group11501.volkov.infopoisk.repositories.ArticlesRepository;
 import ru.kpfu.itis.group11501.volkov.infopoisk.repositories.StudentsRepository;
 
+
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
 
 @Service
@@ -38,6 +38,7 @@ public class ArticleUploader {
     @NonNull StudentsRepository studentsRepository;
 
     @SneakyThrows
+    @Transactional
     public void uploadArticlesToDb() {
         Student student = studentsRepository.findByNameAndSurname(name, surname);
 
