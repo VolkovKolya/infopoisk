@@ -57,6 +57,7 @@ public class WordsTransformer {
     }
 
     private static final SnowballStemmer porterStemmer = new SnowballStemmer(SnowballStemmer.ALGORITHM.RUSSIAN);
+
     public String lemmatiseWithPorter(final String word) {
         return porterStemmer.stem(word).toString();
     }

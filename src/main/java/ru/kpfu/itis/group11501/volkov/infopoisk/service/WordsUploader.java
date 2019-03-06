@@ -4,14 +4,8 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.kpfu.itis.group11501.volkov.infopoisk.domain.Article;
-import ru.kpfu.itis.group11501.volkov.infopoisk.domain.Term;
-import ru.kpfu.itis.group11501.volkov.infopoisk.domain.WordsMyStem;
-import ru.kpfu.itis.group11501.volkov.infopoisk.domain.WordsPorter;
-import ru.kpfu.itis.group11501.volkov.infopoisk.repositories.ArticlesRepository;
-import ru.kpfu.itis.group11501.volkov.infopoisk.repositories.TermsRepository;
-import ru.kpfu.itis.group11501.volkov.infopoisk.repositories.WordsMyStemRepository;
-import ru.kpfu.itis.group11501.volkov.infopoisk.repositories.WordsPorterRepository;
+import ru.kpfu.itis.group11501.volkov.infopoisk.domain.*;
+import ru.kpfu.itis.group11501.volkov.infopoisk.repositories.*;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -27,6 +21,7 @@ public class WordsUploader {
     @NonNull WordsMyStemRepository wordsMyStemRepository;
     @NonNull WordsPorterRepository wordsPorterRepository;
     @NonNull TermsRepository termsRepository;
+    @NonNull ArticleTermRepository articleTermRepository;
 
     @Transactional
     public void uploadWordsFromArticlesToDb() {
@@ -76,5 +71,32 @@ public class WordsUploader {
                 .sorted(Comparator.comparing(Term::getText))
                 .collect(toList());
         termsRepository.saveAll(terms);
+    }
+
+    @Transactional
+    public void uploadTfIdfToTerms() {
+        Map<Article, List<String>> map = wordsPorterRepository.findAll()
+                .stream()
+                .collect(groupingBy(
+                        WordsPorter::getArticle,
+                        mapping(WordsPorter::getTerm, toList())
+                        )
+                );
+
+        articleTermRepository.findAll().forEach(articleTerm -> {
+            final Term term = articleTerm.getArticleTermIdentity().getTerm();
+            final Article article = articleTerm.getArticleTermIdentity().getArticle();
+
+            final List<String> articleTerms = map.get(article);
+            final double tf = (double) articleTerms.stream()
+                    .filter(value -> value.equals(term.getText()))
+                    .count() / articleTerms.size();
+            final double idf = (double) map.keySet().size() /
+                    map.values().stream()
+                            .filter(list -> list.contains(term.getText()))
+                            .count();
+            articleTerm.setTfIdf(tf * Math.log(idf));
+        });
+
     }
 }

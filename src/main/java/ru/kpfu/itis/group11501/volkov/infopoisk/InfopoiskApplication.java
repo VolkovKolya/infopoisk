@@ -49,7 +49,16 @@ public class InfopoiskApplication {
     @Profile(value = "booleanSearch")
     public CommandLineRunner findArticleUrlsByText(@NonNull BooleanSearch booleanSearch) {
         return args -> {
-            System.out.println(booleanSearch.searchText("На сегодняшний день"));
+            booleanSearch.searchText("более вЫгодный курс").forEach(System.out::println);
+            System.exit(0);
+        };
+    }
+
+    @Bean
+    @Profile(value = "uploadTfIdf")
+    public CommandLineRunner uploadTfIdf(@NonNull WordsUploader wordsUploader) {
+        return args -> {
+            wordsUploader.uploadTfIdfToTerms();
             System.exit(0);
         };
     }
