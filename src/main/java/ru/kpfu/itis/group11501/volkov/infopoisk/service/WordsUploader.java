@@ -84,8 +84,8 @@ public class WordsUploader {
                 );
 
         articleTermRepository.findAll().forEach(articleTerm -> {
-            final Term term = articleTerm.getArticleTermIdentity().getTerm();
-            final Article article = articleTerm.getArticleTermIdentity().getArticle();
+            final Term term = articleTerm.getId().getTerm();
+            final Article article = articleTerm.getId().getArticle();
 
             final List<String> articleTerms = map.get(article);
             final double tf = (double) articleTerms.stream()

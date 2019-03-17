@@ -17,7 +17,7 @@ import static lombok.AccessLevel.PRIVATE;
 public class ArticleTerm {
 
     @EmbeddedId
-    ArticleTermIdentity articleTermIdentity;
+    ArticleTermIdentity id;
 
     @Setter
     @Column(name = "\"tf-idf\"")

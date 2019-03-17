@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
 import ru.kpfu.itis.group11501.volkov.infopoisk.service.ArticleUploader;
 import ru.kpfu.itis.group11501.volkov.infopoisk.service.BooleanSearch;
+import ru.kpfu.itis.group11501.volkov.infopoisk.service.CosineSearch;
 import ru.kpfu.itis.group11501.volkov.infopoisk.service.WordsUploader;
 
 @SpringBootApplication
@@ -59,6 +60,17 @@ public class InfopoiskApplication {
     public CommandLineRunner uploadTfIdf(@NonNull WordsUploader wordsUploader) {
         return args -> {
             wordsUploader.uploadTfIdfToTerms();
+            System.exit(0);
+        };
+    }
+
+    @Bean
+    @Profile(value = "cosineSearch")
+    public CommandLineRunner findArticleUrlsByCosineMeasure(@NonNull CosineSearch cosineSearch) {
+        return args -> {
+            cosineSearch.searchText("более вЫгодный курс биткоин биржа программа валюта")
+                    .forEach(pair -> System.out.println("Url: " + pair.getKey()
+                            + " cosine_measure: " + pair.getValue()));
             System.exit(0);
         };
     }
