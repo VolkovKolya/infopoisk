@@ -6,10 +6,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
-import ru.kpfu.itis.group11501.volkov.infopoisk.service.ArticleUploader;
-import ru.kpfu.itis.group11501.volkov.infopoisk.service.BooleanSearch;
-import ru.kpfu.itis.group11501.volkov.infopoisk.service.CosineSearch;
-import ru.kpfu.itis.group11501.volkov.infopoisk.service.WordsUploader;
+import ru.kpfu.itis.group11501.volkov.infopoisk.service.*;
 
 @SpringBootApplication
 public class InfopoiskApplication {
@@ -71,6 +68,17 @@ public class InfopoiskApplication {
             cosineSearch.searchText("более вЫгодный курс биткоин биржа программа валюта")
                     .forEach(pair -> System.out.println("Url: " + pair.getKey()
                             + " cosine_measure: " + pair.getValue()));
+            System.exit(0);
+        };
+    }
+
+    @Bean
+    @Profile(value = "bm25Search")
+    public CommandLineRunner findArticleUrlsByBm25Measure(@NonNull Bm25Search bm25Search) {
+        return args -> {
+            bm25Search.searchText("более вЫгодный курс биткоин биржа программа валюта")
+                    .forEach(pair -> System.out.println("Url: " + pair.getKey()
+                            + " bm25_measure: " + pair.getValue()));
             System.exit(0);
         };
     }

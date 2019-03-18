@@ -6,32 +6,31 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.kpfu.itis.group11501.volkov.infopoisk.domain.Article;
-import ru.kpfu.itis.group11501.volkov.infopoisk.domain.ArticleTerm;
 import ru.kpfu.itis.group11501.volkov.infopoisk.domain.Term;
+import ru.kpfu.itis.group11501.volkov.infopoisk.domain.WordsPorter;
 import ru.kpfu.itis.group11501.volkov.infopoisk.repositories.ArticleTermRepository;
 import ru.kpfu.itis.group11501.volkov.infopoisk.repositories.ArticlesRepository;
 import ru.kpfu.itis.group11501.volkov.infopoisk.repositories.TermsRepository;
+import ru.kpfu.itis.group11501.volkov.infopoisk.repositories.WordsPorterRepository;
 
 import java.util.*;
 
-
 import static java.util.stream.Collectors.*;
-
+import static java.util.stream.Collectors.toList;
 
 @Service
 @RequiredArgsConstructor
-public class CosineSearch {
-
+public class Bm25Search {
     @NonNull WordsTransformer wordsTransformer;
     @NonNull ArticleTermRepository articleTermRepository;
     @NonNull TermsRepository termsRepository;
     @NonNull ArticlesRepository articlesRepository;
-
+    @NonNull WordsPorterRepository wordsPorterRepository;
 
     @Transactional
     /**
      * Find articles url, that contains at least one word in query,
-     * calculate cosine measure with query and return top 10
+     * calculate bm25 measure with query and return top 10
      * Realization use PorterStemmer as stemmer.
      *
      * @param query incoming query text
@@ -47,46 +46,69 @@ public class CosineSearch {
                 .map(Optional::get)
                 .collect(toList());
 
-        //find ArticleTerms group by Article which contains any term, and map it to convenient view
-        final Map<Article, Map<Term, Double>> map = queryTerms.stream()
+        Map<Article, List<String>> articleWords = wordsPorterRepository.findAll()
+                .stream()
+                .collect(groupingBy(
+                        WordsPorter::getArticle,
+                        mapping(WordsPorter::getTerm, toList())
+                        )
+                );
+
+
+        //count how many times each term contains in each article
+        final Map<Article, Map<Term, Long>> map = queryTerms.stream()
                 .flatMap(term -> articleTermRepository.findById_Term(term).stream())
 
                 .collect(groupingBy(
                         articleTerm -> articleTerm.getId().getArticle(),
                         toMap(articleTerm -> articleTerm.getId().getTerm(),
-                                ArticleTerm::getTfIdf)
+                                articleTerm -> {
+                                    Article article = articleTerm.getId().getArticle();
+                                    Term term = articleTerm.getId().getTerm();
+                                    long count = articleWords.get(article).stream()
+                                            .filter(word -> word.equals(term.getText()))
+                                            .count();
+                                    return count;
+
+                                }
+                        )
                         )
                 );
 
-
-        //build vectors
         final long allSize = articlesRepository.count();
-        List<Double> queryVector = queryTerms.stream()
-                .map(term -> {
+        final double avgSize = articleWords.values().stream()
+                .mapToInt(List::size)
+                .average()
+                .orElse(0d);
+
+        Map<Term, Double> termIdf = new HashMap<>(queryTerms.size());
+        queryTerms.stream()
+                .forEach(term -> {
                     long containsTermSize = map.values().stream()
                             .filter(articleMap -> articleMap.containsKey(term))
                             .count();
-                    if (containsTermSize != 0) {
-                        return Math.log((double) allSize / containsTermSize);
-                    } else {
-                        return 0d;
-                    }
-                })
-                .collect(toList());
+
+                    double idf = Math.log((double) allSize - containsTermSize + 0.5 / (containsTermSize + 0.5));
+                    idf = Math.max(idf, 0);
+                    termIdf.put(term, idf);
+
+                });
 
         final List<Pair<String, Double>> result = map.entrySet().stream()
                 //map to pair of article url and terms vector
                 .map(entry -> {
-                    List<Double> vector = new ArrayList<>(queryVector.size());
+                    double sum = 0;
+
                     for (Term term : queryTerms) {
-                        Optional<Double> optional = Optional.ofNullable(entry.getValue().get(term));
-                        vector.add(optional.orElse(0d));
+                        long times = Optional.ofNullable(entry.getValue().get(term)).orElse(0L);
+                        double bm25Measure = termIdf.get(term) * (times * (Bm25.K1 + 1) /
+                                (times + Bm25.K1 * (1 - Bm25.B + Bm25.B * (articleWords.get(entry.getKey()).size()) / avgSize))
+                        );
+                        sum += bm25Measure;
                     }
 
-                    return new Pair<String, List<Double>>(entry.getKey().getUrl(), vector);
+                    return new Pair<String, Double>(entry.getKey().getUrl(), sum);
                 })
-                //map to result
-                .map(pair -> new Pair<String, Double>(pair.getKey(), cosineMeasure(queryVector, pair.getValue())))
 
                 .sorted(Comparator.comparing(Pair<String, Double>::getValue).reversed())
                 .limit(10)
@@ -94,31 +116,15 @@ public class CosineSearch {
                 .collect(toList());
 
         return result;
+
+
     }
 
 
-    private Double cosineMeasure(List<Double> list1, List<Double> list2) {
-        double sum = 0d;
-        double len1 = 0d;
-        double len2 = 0d;
-        final Iterator<Double> iterator1 = list1.iterator();
-        final Iterator<Double> iterator2 = list2.iterator();
-        while (iterator1.hasNext() && iterator2.hasNext()) {
-            double val1 = iterator1.next();
-            double val2 = iterator2.next();
-            len1 += val1 * val1;
-            len2 += val2 * val2;
-            sum += val1 * val2;
-        }
-        while (iterator1.hasNext()) {
-            double val = iterator1.next();
-            len1 += val * val;
-        }
-        while (iterator2.hasNext()) {
-            double val = iterator2.next();
-            len2 += val * val;
-        }
+}
 
-        return sum / (Math.sqrt(len1) * Math.sqrt(len2));
-    }
+
+class Bm25 {
+    public static final Double K1 = 1.2;
+    public static final Double B = 0.75;
 }
