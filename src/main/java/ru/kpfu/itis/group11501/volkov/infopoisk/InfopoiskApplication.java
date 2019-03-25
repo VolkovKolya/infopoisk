@@ -1,12 +1,20 @@
 package ru.kpfu.itis.group11501.volkov.infopoisk;
 
+import Jama.Matrix;
+import Jama.SingularValueDecomposition;
+import com.sun.management.OperatingSystemMXBean;
 import lombok.NonNull;
+import org.apache.commons.io.FileSystemUtils;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
 import ru.kpfu.itis.group11501.volkov.infopoisk.service.*;
+
+import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.nio.file.*;
 
 @SpringBootApplication
 public class InfopoiskApplication {
@@ -82,4 +90,16 @@ public class InfopoiskApplication {
             System.exit(0);
         };
     }
+
+    @Bean
+    @Profile(value = "singularDecomposition")
+    public CommandLineRunner singularDecomposition(@NonNull SingularDecompositionSearch search) {
+        return args -> {
+            search.searchText("более вЫгодный курс биткоин биржа программа валюта")
+                    .forEach(pair -> System.out.println("Url: " + pair.getKey()
+                            + " SVD_cosine_measure: " + pair.getValue()));
+            System.exit(0);
+        };
+    }
+
 }

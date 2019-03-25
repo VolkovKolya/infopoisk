@@ -97,7 +97,7 @@ public class CosineSearch {
     }
 
 
-    private Double cosineMeasure(List<Double> list1, List<Double> list2) {
+    public static Double cosineMeasure(List<Double> list1, List<Double> list2) {
         double sum = 0d;
         double len1 = 0d;
         double len2 = 0d;
